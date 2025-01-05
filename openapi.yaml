@@ -1,0 +1,204 @@
+openapi: 3.0.3
+info:
+  title: Auth Server
+  description: 認証サーバー
+  version: 1.0.0
+tags:
+  - name: Auth
+    description: 認証
+  - name: User
+    description: ユーザー管理
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+paths:
+  "/login":
+    post:
+      tags:
+        - Auth
+      summary: ログイン
+      description: ログイン。accessTokenとrefreshTokenを発行します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  "/logout":
+    post:
+      tags:
+        - Auth
+      summary: ログアウト
+      description: ログアウト。accessTokenとrefreshTokenを無効化します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+      responses:
+        '200':
+          description: ログアウト成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  "/signup":
+    post:
+      tags:
+        - User
+      summary: サインアップ
+      description: サインアップ。accessTokenとrefreshTokenを新たに発行します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: サインアップ成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  "/user/:id":
+    patch:
+      tags:
+        - User
+      summary: ユーザー更新
+      description: ユーザー更新 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: ユーザー更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags:
+        - User
+      summary: ユーザー削除
+      description: ユーザー削除
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+      responses:
+        '200':
+          description: ユーザー削除成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  "/refresh":
+    post:
+      tags:
+        - Auth
+      summary: トークン更新
+      description: トークン更新。accessTokenを新たに発行します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: トークン更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  "/auth":
+    get:
+      tags:
+        - Auth
+      summary: 認証
+      description: 認証。accessTokenを使用してユーザー情報を取得します。
+      responses:
+        '200':
+          description: 認証成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      accessToken:
+                        type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+  responses:
+    BadRequest:
+      description: 無効なリクエスト
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+    Unauthorized:
+      description: 認証されていません
