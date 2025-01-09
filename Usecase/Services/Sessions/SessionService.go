@@ -2,14 +2,15 @@ package Sessions
 
 import (
 	sessions "auth-server/Domain/Models/Sessions"
-	users "auth-server/Domain/Models/Users"
+	"os"
 	"time"
 )
 
 type ISessionService interface {
-	CreateSession(user users.User) (sessions.Session, sessions.Session, error)
-	DeleteSession(user users.User) error
-	ValidateToken(userID, token, secret string) error
+	CreateSession(userId string) (sessions.Session, sessions.Session, error)
+	DeleteSession(userId string) error
+	RefreshSession(userId string, token string) (sessions.Session, sessions.Session, error)
+	ValidateSession(userId string, token string) error
 }
 
 type SessionService struct {
@@ -17,11 +18,15 @@ type SessionService struct {
 }
 
 var (
-	secretKey          = "my_secret_key"         // JWT署名用シークレットキー
-	refreshSecretKey   = "my_refresh_secret_key" // リフレッシュトークン用のシークレットキー
-	accessTokenExpiry  = time.Minute * 15        // アクセストークンの有効期限(15分)
-	refreshTokenExpiry = time.Hour * 24 * 7      // リフレッシュトークンの有効期限(7日)
+	secretKey          = os.Getenv("JWT_SECRET")         // JWT署名用シークレットキー
+	refreshSecretKey   = os.Getenv("JWT_REFRESH_SECRET") // リフレッシュトークン用のシークレットキー
+	accessTokenExpiry  = time.Minute * 15                // アクセストークンの有効期限(15分)
+	refreshTokenExpiry = time.Hour * 24 * 7              // リフレッシュトークンの有効期限(7日)
 )
+
+func NewSessionService(sessionRepository sessions.ISessionRepository) ISessionService {
+	return &SessionService{sessionRepository}
+}
 
 func (ss *SessionService) CreateSession(userId string) (sessions.Session, sessions.Session, error) {
 	accessToken, err := sessions.CreateSession(userId, secretKey, accessTokenExpiry)
@@ -49,7 +54,8 @@ func (ss *SessionService) DeleteSession(userId string) error {
 	return nil
 }
 
-func (ss *SessionService) RefreshSession(userId string, session sessions.Session, secret string) (sessions.Session, sessions.Session, error) {
+func (ss *SessionService) RefreshSession(userId string, token string) (sessions.Session, sessions.Session, error) {
+	session := sessions.Session{Token: token}
 	err := session.ValidateToken(userId, refreshSecretKey)
 	if err != nil {
 		return sessions.Session{}, sessions.Session{}, err
@@ -65,4 +71,13 @@ func (ss *SessionService) RefreshSession(userId string, session sessions.Session
 		return sessions.Session{}, sessions.Session{}, err
 	}
 	return accessToken, refreshToken, nil
+}
+
+func (ss *SessionService) ValidateSession(userId string, token string) error {
+	session := sessions.Session{Token: token}
+	err := session.ValidateToken(userId, secretKey)
+	if err != nil {
+		return err
+	}
+	return nil
 }
