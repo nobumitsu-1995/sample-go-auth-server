@@ -13,7 +13,7 @@ type UserService struct {
 	userRepository users.IUserRepository
 }
 
-func (u *UserService) DuplicateEmail(email string) error {
+func (u *UserService) DuplicateEmail(email users.Email) error {
 	user, err := u.userRepository.FindByEmail(email)
 	if err != nil {
 		return err
